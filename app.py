@@ -4,10 +4,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
-import google.generativeai as genai # Importa la biblioteca de Gemini para análisis de datos
+import google.generativeai as genai
 
 # configuración de la página
 st.set_page_config(page_title="Prueba de Hipótesis", layout="wide")
+
+# inyección de css para aumentar el tamaño de la fuente
+st.markdown(
+    """
+    <style>
+    /* aumenta el tamaño del textos general */
+    p, li, .stMarkdown {
+        font-size: 20px !important;
+    }
+    /* hace que las etiquetas de los inputs se vean mejor */
+    .st-emotion-cache-1eqo7vq label {
+        font-size: 16px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # título de la página
 st.title("Análisis de Datos")
@@ -31,7 +48,7 @@ if st.button("Generar Datos"):
     st.session_state['df'] = pd.DataFrame({'Variable': data})
     st.success(f"¡Se generaron {n_samples} datos correctamente!")
 
-    # segundo modulo: visualización
+# segundo modulo: visualización
 if 'df' in st.session_state:
     df = st.session_state['df']
     st.header("2 Visualización de la Distribución")
@@ -121,7 +138,15 @@ if st.button("Consultar a la IA"):
     else:
         # configuracion de la api
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # buscar modelo compatible automaticamente
+        valid_model = 'gemini-1.5-flash'
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods and 'flash' in m.name:
+                valid_model = m.name.replace('models/', '')
+                break
+                
+        model = genai.GenerativeModel(valid_model)
         
         # recupera los resultados del modulo 3
         res = st.session_state['test_results']
@@ -147,4 +172,4 @@ if st.button("Consultar a la IA"):
                 st.write("**Respuesta de la IA:**")
                 st.write(respuesta.text)
             except Exception as e:
-                st.error(f"Error al conectar con la API: {e}")        
+                st.error(f"Error al conectar con la API: {e}")
