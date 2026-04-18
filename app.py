@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
+import google.generativeai as genai # Importa la biblioteca de Gemini para análisis de datos
 
 # configuración de la página
 st.set_page_config(page_title="Prueba de Hipótesis", layout="wide")
@@ -103,3 +104,47 @@ if 'df' in st.session_state:
             'std_dev': std_dev, 'alpha': alpha, 'test_type': test_type, 
             'z_score': z_score, 'p_value': p_value, 'reject_h0': reject_h0
         }
+
+# cuarto modulo: asistente de ia (gemini)
+st.header("4 Asistente de IA")
+st.markdown("Integración con Gemini para evaluar la decisión estadística")
+
+# input seguro para la llave de la api
+api_key = st.text_input("Ingresa tu API Key de Gemini:", type="password")
+
+if st.button("Consultar a la IA"):
+    # validacion para asegurar que exista la llave y los datos de la prueba
+    if not api_key:
+        st.warning("Por favor, ingresa tu API Key para continuar.")
+    elif 'test_results' not in st.session_state:
+        st.warning("Primero debes ejecutar la Prueba de Hipótesis en el módulo 3.")
+    else:
+        # configuracion de la api
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # recupera los resultados del modulo 3
+        res = st.session_state['test_results']
+        
+        # armado del prompt usando el formato solicitado por el profesor
+        prompt = f"""
+        Se realizó una prueba Z con los siguientes parámetros:
+        media muestral = {res['sample_mean']:.2f}, media hipotética = {res['hypothesized_mean']}, 
+        n = {res['n']}, sigma = {res['std_dev']}, alpha = {res['alpha']}, tipo de prueba = {res['test_type']}.
+        
+        El estadístico Z fue = {res['z_score']:.4f} y el p-value = {res['p_value']:.4f}.
+        
+        ¿Se rechaza H0? Explica la decisión y si los supuestos de la prueba son razonables.
+        """
+        
+        st.write("**Prompt enviado:**")
+        st.info(prompt)
+        
+        # llamada a la api con indicador de carga
+        with st.spinner("Gemini está analizando los resultados..."):
+            try:
+                respuesta = model.generate_content(prompt)
+                st.write("**Respuesta de la IA:**")
+                st.write(respuesta.text)
+            except Exception as e:
+                st.error(f"Error al conectar con la API: {e}")        
